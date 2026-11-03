@@ -1,0 +1,10 @@
+# PyTorch — CPU (Python 3.14 nie ma jeszcze kółek CUDA od PyTorch.org)
+# Po pojawieniu się CUDA wheels: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+torch>=2.9
+torchvision>=0.19
+pillow
+numpy
+matplotlib
+scikit-learn
+jupyter
+kaggle
