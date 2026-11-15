@@ -22,3 +22,4 @@ raport/*.toc
 raport/*.fls
 raport/*.fdb_latexmk
 raport/*.synctex.gz
+out/logs/
