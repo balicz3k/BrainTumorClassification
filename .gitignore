@@ -1,10 +1,24 @@
+# dane (obrazy MRI pobiera się z Kaggle) i ich cache
 data/raw/
-out/
+data/cache/
+# modele są duże i odtwarzalne skryptem src/train.py
+models/
+# pliki pomocnicze
+out/optuna.db
 __pycache__/
 *.pyc
-.venv/
 .ipynb_checkpoints/
 *.egg-info/
 .DS_Store
+# środowiska
 venv/
+.venv/
 venv_py314_cpu/
+# pliki pomocnicze LaTeX-a
+raport/*.aux
+raport/*.log
+raport/*.out
+raport/*.toc
+raport/*.fls
+raport/*.fdb_latexmk
+raport/*.synctex.gz
