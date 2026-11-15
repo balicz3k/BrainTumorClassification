@@ -1,0 +1,17 @@
+{
+ "n_resolutions": 447,
+ "frac_512": {
+  "glioma": 0.9578,
+  "meningioma": 0.8611,
+  "notumor": 0.0111,
+  "pituitary": 0.9556
+ },
+ "mean_intensity": {
+  "glioma": 33.09,
+  "meningioma": 43.36,
+  "notumor": 61.73,
+  "pituitary": 49.43
+ },
+ "n_rgb_differs": 129,
+ "train_mean": 0.184
+}
