@@ -61,7 +61,7 @@ def load_split_table():
     path = METRICS_DIR / 'duplicates.csv'
     if not path.exists():
         raise FileNotFoundError('Brak out/metrics/duplicates.csv - uruchom najpierw: python -m src.duplicates')
-    return pd.read_csv(path)
+    return pd.read_csv(path, dtype={'phash': str, 'md5': str})
 
 
 def training_table():

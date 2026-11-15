@@ -1,0 +1,6 @@
+threshold,test_with_train_twin,glioma,meningioma,notumor,pituitary
+0,370,6,105,257,2
+2,505,24,124,328,29
+4,714,86,173,353,102
+6,981,172,240,363,206
+8,1248,254,314,374,306
