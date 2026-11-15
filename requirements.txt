@@ -1,7 +1,8 @@
-# PyTorch — CPU (Python 3.14 nie ma jeszcze kółek CUDA od PyTorch.org)
-# Po pojawieniu się CUDA wheels: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
-torch>=2.9
-torchvision>=0.19
+# PyTorch z CUDA 12.4 (wymaga Python 3.12, nie 3.14)
+# venv: python3.12 -m venv venv
+# instalacja: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+torch>=2.6.0
+torchvision>=0.21.0
 pillow
 numpy
 matplotlib
