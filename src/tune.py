@@ -49,7 +49,7 @@ def make_objective(name):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--model', default='efficientnet_b0')
-    ap.add_argument('--trials', type=int, default=20)
+    ap.add_argument('--trials', type=int, default=20, help='łączna liczba prób w badaniu')
     args = ap.parse_args()
 
     study = optuna.create_study(
@@ -57,7 +57,11 @@ def main():
         sampler=optuna.samplers.TPESampler(seed=42),
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5),
         storage=f'sqlite:///{OUT_DIR / "optuna.db"}', load_if_exists=True)
-    study.optimize(make_objective(args.model), n_trials=args.trials)
+    # próby przerwane np. wyłączeniem komputera oznaczamy jako nieudane i dokańczamy do args.trials
+    for t in study.get_trials(states=[optuna.trial.TrialState.RUNNING]):
+        study.tell(t.number, state=optuna.trial.TrialState.FAIL)
+    finished = study.get_trials(states=[optuna.trial.TrialState.COMPLETE, optuna.trial.TrialState.PRUNED])
+    study.optimize(make_objective(args.model), n_trials=max(0, args.trials - len(finished)))
 
     METRICS_DIR.mkdir(parents=True, exist_ok=True)
     study.trials_dataframe().to_csv(METRICS_DIR / f'optuna_{args.model}.csv', index=False)
