@@ -1,0 +1,60 @@
+\subsection*{Wnioski}
+\begin{itemize}
+\item Transfer wiedzy z ImageNet daje wyraźnie lepsze wyniki niż sieć uczona od zera
+  (macro-F1 w CV \cvFRes{} i \cvFEff{} wobec \cvFCnn{}). ResNet50 i EfficientNetB0 są
+  praktycznie równorzędne, przy czym EfficientNetB0 jest ok.~6 razy mniejszy. Strojenie
+  Optuną poprawiło wyniki nieznacznie, w granicach niepewności.
+\item Najlepszy model (ResNet50 po strojeniu) osiąga na oryginalnym teście accuracy
+  \accTestResTuned{}, a na teście oczyszczonym z duplikatów \accDedupResTuned{}
+  (macro-F1 \fDedupResTuned{}). Różnica pokazuje, jak bardzo duplikaty między treningiem
+  i testem zawyżają wyniki publikowane dla tego zbioru.
+\item Model bardzo dobrze rozpoznaje guzy przysadki, oponiaki i obrazy bez guza, ale gubi
+  glejaki pochodzące z innego źródła niż dane treningowe (czułość dla glejaka
+  \sensDedupGlioma{}). Część z nich uznaje za obraz bez guza. Analiza błędów i Grad-CAM
+  wskazują, że model częściowo nauczył się rozpoznawać \emph{źródło i sekwencję} obrazu
+  zamiast cech guza.
+\item W praktyce klinicznej taki model mógłby co najwyżej wspierać wstępne sortowanie badań
+  (triage), z wynikiem zawsze weryfikowanym przez radiologa. W obecnej postaci nie nadaje się
+  do użycia: przeoczenie co piątego glejaka z nowego źródła jest nieakceptowalne.
+\end{itemize}
+
+\subsection*{Problemy i ograniczenia}
+\begin{itemize}
+\item \textbf{Brak identyfikatora pacjenta.} Nie da się zrobić podziału per pacjent.
+  Grupowanie niemal-duplikatów pHash jest tylko przybliżeniem: sąsiednie przekroje tego
+  samego pacjenta mogą różnić się bardziej niż próg.
+\item \textbf{Zbiór złożony z kilku źródeł}, w których klasy są nierówno reprezentowane
+  (glejaki w treningu tylko z jednego źródła, obrazy bez guza głównie z innych). To główna
+  przyczyna błędów. Do tego sztuczny balans (kopie \texttt{aug}) i szum etykiet
+  (\nPairsConflict{} par niemal identycznych obrazów z różnymi etykietami).
+\item \textbf{Pojedyncze przekroje 2D} zamiast całych badań 3D i różnych sekwencji tego samego
+  pacjenta; radiolog ocenia całe badanie.
+\item \textbf{Brak walidacji zewnętrznej} (inny szpital, inny skaner). Oczyszczony test pochodzi
+  z tych samych źródeł co trening i jest mały (\nTestDedup{} obrazów, w tym tylko \nDedupNotumor{}
+  bez guza), stąd szerokie przedziały ufności.
+\item \textbf{Strojenie} na tych samych foldach co ocena CV (brak zagnieżdżonej walidacji).
+\item Rozdzielczość 224$\times$224 może ukrywać drobne zmiany. Wyjaśnienia Grad-CAM mają niską
+  rozdzielczość (7$\times$7) i pokazują korelacje, nie przyczyny.
+\end{itemize}
+
+\subsection*{Aspekty etyczne i prawne}
+Obrazy medyczne to dane szczególnej kategorii (art.~9 RODO). Ich użycie wymaga podstawy
+prawnej i anonimizacji, a pacjent ma prawo do informacji o zautomatyzowanym przetwarzaniu
+i do wyjaśnienia decyzji (art.~22). Uprzedzenia ukryte w danych -- tu powiązanie klasy ze
+źródłem obrazu -- nie są widoczne w samych metrykach i mogą prowadzić do systematycznie
+gorszej diagnozy dla pacjentów badanych w innych ośrodkach. Odpowiedzialność za decyzję
+zawsze ponosi lekarz.
+
+\subsection*{Możliwości rozwoju}
+\begin{itemize}
+\item Dane: zbiory z identyfikatorem pacjenta i wieloma ośrodkami (np. BraTS -- badania 3D
+  z wieloma sekwencjami), walidacja na zewnętrznym zbiorze, glejaki z różnych źródeł w treningu.
+\item Walidacja grupowa według źródła (leave-one-source-out), żeby wprost mierzyć
+  przenoszenie się modelu na nowy ośrodek.
+\item Normalizacja intensywności per obraz (np. z-score w obrębie mózgu), usunięcie ramek
+  i znaczników, wycinanie samego mózgu -- żeby utrudnić uczenie się skrótów.
+\item Segmentacja guza (np. U-Net) zamiast samej klasyfikacji, modele 3D.
+\item Progi decyzyjne dobrane pod wysoką czułość klas nowotworowych, kalibracja
+  (temperature scaling) i wykrywanie obrazów spoza znanej dystrybucji (odmowa odpowiedzi
+  przy niepewności).
+\end{itemize}

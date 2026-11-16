@@ -1,0 +1,10 @@
+\begin{tabular}{lrrrccccc}
+\toprule
+model & mln par. & s/ep. & najl. ep. & accuracy & macro-F1 & macro czułość & macro swoistość & macro AUC \\
+\midrule
+CNN od zera & 1,2 & 11 & 28/30 & 0,955 $\pm$ 0,006 & 0,955 $\pm$ 0,006 & 0,955 $\pm$ 0,006 & 0,985 $\pm$ 0,002 & 0,995 $\pm$ 0,002 \\
+EfficientNetB0 & 4,0 & 6 & 12/15 & 0,981 $\pm$ 0,006 & 0,981 $\pm$ 0,006 & 0,981 $\pm$ 0,006 & 0,994 $\pm$ 0,002 & 0,999 $\pm$ 0,001 \\
+ResNet50 & 23,5 & 11 & 9/15 & 0,984 $\pm$ 0,005 & 0,984 $\pm$ 0,005 & 0,984 $\pm$ 0,004 & 0,995 $\pm$ 0,002 & 0,999 $\pm$ 0,000 \\
+ResNet50 (Optuna) & 23,5 & 13 & 12/15 & 0,987 $\pm$ 0,006 & 0,987 $\pm$ 0,006 & 0,987 $\pm$ 0,006 & 0,996 $\pm$ 0,002 & 0,999 $\pm$ 0,000 \\
+\bottomrule
+\end{tabular}

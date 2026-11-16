@@ -1,0 +1,31 @@
+Zbiór testowy został użyty jeden raz, dla czterech modeli końcowych. Najlepszy model,
+ResNet50 po strojeniu, osiąga na oryginalnym teście accuracy \accTestResTuned{}
+(95\,\% CI \accCiTestResTuned{}) i macro-F1 \fTestResTuned{}. Na teście oczyszczonym
+z duplikatów wyniki są wyraźnie niższe: accuracy \accDedupResTuned{} (\accCiDedupResTuned{})
+i macro-F1 \fDedupResTuned{} (\fCiDedupResTuned{}). Taki sam spadek widać dla wszystkich
+modeli. Część oryginalnego testu to kopie obrazów treningowych, które model ,,pamięta''.
+Dlatego za miarodajny uważamy wynik na \texttt{test\_dedup}, a wynik na oryginalnym teście
+podajemy tylko dla porównania z literaturą. Kolejność modeli jest taka sama jak w CV
+(CNN wyraźnie najsłabsza), ale przedziały ufności EfficientNetB0 i obu wersji ResNet50
+w dużej mierze się pokrywają. Strojenie nie dało więc istotnej statystycznie poprawy.
+
+Wyniki na teście są niższe niż w walidacji krzyżowej (macro-F1 \cvFResTuned{} po strojeniu). Wyjaśnia to
+analiza błędów (rozdz.~\ref{sec:bledy}): w teście są glejaki z innego źródła danych,
+których w treningu nie było. Wartości per klasa (tab.~\ref{tab:klasy-test} i
+\ref{tab:klasy-dedup}) pokazują, że wszystkie błędy dotyczą praktycznie jednej klasy:
+\begin{itemize}
+\item czułość dla glejaka wynosi tylko \sensDedupGlioma{} (\sensCiDedupGlioma{}) na \texttt{test\_dedup},
+  przy swoistości \specDedupGlioma{} -- model nigdy nie nazywa glejakiem czegoś innego,
+  ale co piąty glejak umyka,
+\item czułość dla oponiaka, guza przysadki i klasy \texttt{notumor} jest bliska 1,
+\item swoistość klasy \texttt{notumor} to \specDedupNotumor{} (\specCiDedupNotumor{}): część
+  obrazów z guzem (glejaków) model uznaje za obraz bez guza. Klinicznie to najgroźniejszy błąd
+  (fałszywe uspokojenie),
+\item AUC dla wszystkich klas jest wysokie (glejak \aucDedupGlioma{}, pozostałe $\geq$ 0,98),
+  co oznacza, że prawdopodobieństwa porządkują obrazy dość dobrze. Problem leży w progu
+  decyzyjnym i w pewności modelu na obrazach spoza znanej dystrybucji.
+\end{itemize}
+Kalibracja (rys.~\ref{fig:kal}) jest przyzwoita (ECE \eceDedupResTuned{} na \texttt{test\_dedup}),
+ale błędy na glejakach mają pewność bliską 1, więc wysoka pewność nie chroni przed pomyłką.
+Na małym oczyszczonym teście (tylko \nDedupNotumor{} obrazów \texttt{notumor}) przedziały ufności są
+szerokie -- dlatego je raportujemy.

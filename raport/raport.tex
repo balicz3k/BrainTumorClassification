@@ -1,0 +1,217 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{amsmath}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\graphicspath{{../out/figures/}{zrzuty/}}
+\input{liczby.tex}
+\newcommand{\tabela}[1]{\input{tabele/#1.tex}}
+
+\begin{document}
+
+% ---------------------------------------------------------------- strona tytułowa
+\pagenumbering{Alph}
+\begin{titlepage}
+\centering
+{\Large Politechnika Krakowska\par}
+\vspace{2mm}
+{\large Wydział Informatyki i Telekomunikacji\par}
+\vspace{2mm}
+{\large Studia Stacjonarne\par}
+\vspace{4cm}
+{\large Sprawozdanie z przedmiotu:\par}
+\vspace{2mm}
+{\LARGE\bfseries Uczenie Maszynowe w Diagnostyce Medycznej\par}
+\vspace{2cm}
+{\large Temat Projektu:\par}
+\vspace{2mm}
+{\Large Klasyfikacja guzów mózgu na obrazach rezonansu magnetycznego\par}
+\vfill
+\begin{flushright}
+{\large Wykonał:\par}
+{\large Jakub Balicki\par}
+\end{flushright}
+\vspace{1cm}
+{\large Kraków, \today\par}
+\end{titlepage}
+\pagenumbering{arabic}
+
+\tableofcontents
+\newpage
+
+% ---------------------------------------------------------------- 1
+\section{Wstęp}
+
+\subsection*{Cel projektu}
+Celem projektu jest automatyczna klasyfikacja pojedynczych przekrojów MRI mózgu do jednej
+z czterech klas: glejak (\texttt{glioma}), oponiak (\texttt{meningioma}), guz przysadki
+(\texttt{pituitary}) oraz brak guza (\texttt{notumor}). Taki klasyfikator mógłby wspierać
+wstępną selekcję badań (triage), np. wskazywać radiologowi badania z podejrzeniem guza.
+Z punktu widzenia klinicznego najważniejsze jest, żeby nie przeoczyć guza (czułość dla klas
+nowotworowych, swoistość dla klasy \texttt{notumor}) oraz żeby rzetelnie ocenić, na ile
+wynik przeniesie się na nowych pacjentów.
+
+\subsection*{Opis danych}
+Wykorzystano publiczny zbiór \emph{Brain Tumor MRI Dataset} (M.~Nickparvar, Kaggle), który
+łączy kilka źródeł: figshare, SARTAJ i Br35H. Pobrana wersja zawiera \nAll{} obrazów JPG
+w skali szarości: \nTrainDir{} w katalogu \texttt{Training} i \nTestDir{} w~\texttt{Testing},
+po równo w każdej klasie (tab.~\ref{tab:dane}). Cechy to piksele obrazu; nie ma żadnych
+metadanych (wieku, płci, identyfikatora pacjenta ani rodzaju sekwencji).
+
+Kontrola jakości (rozdz.~\ref{sec:eda}) ujawniła kilka problemów:
+\begin{itemize}
+\item balans klas jest sztuczny: klasę \texttt{meningioma} dopełniono \nAugTrain{}~+~\nAugTest{}
+  przekształconymi kopiami istniejących obrazów (pliki \texttt{*-aug-me\_*}), a starsze opisy
+  zbioru podają 7023 obrazy o innych licznościach klas,
+\item \nMdGroups{} grup identycznych plików (\nMdFiles{} plików) oraz \nPairs{} par niemal identycznych
+  obrazów; \leakFour{} z \nTestDir{} obrazów testowych ma bliźniaka w zbiorze treningowym,
+\item \nPairsConflict{} par niemal identycznych obrazów ma różne etykiety (głównie glejak/oponiak),
+\item klasy pochodzą z różnych źródeł: obrazy z guzami to prawie wyłącznie 512$\times$512 i T1 po
+  kontraście, obrazy \texttt{notumor} mają różne rozdzielczości i sekwencje.
+\end{itemize}
+
+\begin{table}[H]
+\centering
+\caption{Liczność klas. ,,aug'' -- sztuczne kopie; ,,trening'' -- zbiór używany do uczenia
+(bez kopii); \texttt{test\_dedup} -- test oczyszczony z duplikatów treningu (rozdz.~\ref{sec:dup}).}
+\label{tab:dane}
+\tabela{dane}
+\end{table}
+
+\subsection*{Zakres projektu}
+Zrealizowano: eksploracyjną analizę danych z kontrolą duplikatów i wycieku, walidację
+krzyżową z grupowaniem duplikatów, porównanie trzech modeli (CNN uczona od zera,
+EfficientNetB0 i ResNet50 z transferem wiedzy), strojenie hiperparametrów biblioteką Optuna,
+jednorazową ewaluację na zbiorze testowym z metrykami klinicznymi i przedziałami ufności,
+kalibrację, wyjaśnialność metodą Grad-CAM, analizę błędów oraz prosty interfejs graficzny
+w Streamlit. Kod jest w repozytorium (rozdz.~\ref{sec:zal}); każda liczba w raporcie jest
+generowana skryptem \texttt{raport/generuj\_liczby.py} z plików w \texttt{out/metrics/}.
+
+% ---------------------------------------------------------------- 2
+\section{Przygotowanie danych}
+
+\subsection*{Eksploracyjna analiza danych (EDA)}\label{sec:eda}
+Notatnik \texttt{01\_eda.ipynb}. Przykładowe obrazy przedstawia rys.~\ref{fig:przyklady}.
+W każdej klasie są przekroje w trzech płaszczyznach (osiowej, czołowej, strzałkowej).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\linewidth]{eda_przyklady.png}
+\caption{Losowe obrazy treningowe z każdej klasy.}
+\label{fig:przyklady}
+\end{figure}
+
+\paragraph{Rozdzielczość i kanały.} Obrazy mają \nResolutions{} różnych rozdzielczości. Co najmniej
+\fracFiveTumorMin{} obrazów w każdej z klas z guzem ma 512$\times$512 pikseli, a w klasie
+\texttt{notumor} tylko \fracFiveNotumor{}. Pliki są zapisane jako skala szarości lub RGB, ale
+w RGB kanały są praktycznie identyczne, więc wszystkie obrazy zamieniamy na jeden kanał szarości.
+
+\paragraph{Jasność.} Średnia jasność obrazów różni się między klasami
+(rys.~\ref{fig:jasnosc}): obrazy glejaków są najciemniejsze (średnio \meanIntGlioma{} w skali
+0--255), obrazy bez guza -- najjaśniejsze (\meanIntNotumor{}).
+Guz zajmuje mały fragment obrazu, więc różnica wynika głównie ze sposobu akwizycji
+(sekwencja, okno wyświetlania, źródło danych). Istnieje więc ryzyko, że model nauczy się
+rozpoznawać \emph{źródło} lub \emph{kontrast} obrazu zamiast guza -- sprawdzamy to w rozdz.~\ref{sec:xai}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{eda_jasnosc.png}
+\caption{Średnia jasność obrazu i udział pikseli nie-tła w klasach (zbiór treningowy).}
+\label{fig:jasnosc}
+\end{figure}
+
+\paragraph{Duplikaty i wyciek.}\label{sec:dup}
+Zbiór nie zawiera identyfikatora pacjenta, więc nie da się zastosować podziału per pacjent
+(Leave-One-Group-Out). Zamiast tego szukaliśmy obrazów identycznych (skrót MD5 pliku)
+i niemal identycznych (perceptual hash, pHash: 64-bitowy skrót z transformaty DCT obrazu
+32$\times$32; odległość Hamminga między skrótami mierzy podobieństwo). Po obejrzeniu par
+o różnych odległościach (rys.~\ref{fig:pary}) przyjęliśmy próg 4~bitów: przy 0--2 są to te
+same obrazy (czasem inaczej przycięte), przy~4 ten sam lub sąsiedni przekrój tego samego
+badania, przy 6 i więcej coraz częściej różne osoby. Tabela~\ref{tab:wyciek} pokazuje, że
+nawet przy progu~0 aż \leakZero{} obrazów testowych (w tym \leakZeroNotumor{} z klasy
+\texttt{notumor}) ma kopię w treningu; przy progu~4 jest ich \leakFour{} (\leakFourNotumor{}
+z 400 obrazów \texttt{notumor}). Wynik na oryginalnym teście jest więc częściowo
+,,sprawdzaniem pamięci'' modelu.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{eda_pary_phash.png}
+\caption{Losowe pary obrazów o odległości Hamminga pHash $d = 0, 2, 4, 6$ (wiersze).}
+\label{fig:pary}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Liczba obrazów testowych, które mają w treningu obraz o odległości pHash nie większej niż próg.}
+\label{tab:wyciek}
+\tabela{wyciek}
+\end{table}
+
+Wśród par niemal-duplikatów \nPairsConflict{} ma różne etykiety, z czego \nPairsConflictGM{}
+to pary glejak--oponiak (rys.~\ref{fig:konflikty}). Jest to szum etykiet, który ogranicza
+osiągalną dokładność dla tych dwóch klas. Pliki \texttt{aug} okazały się odbitymi lub
+obróconymi kopiami oryginalnych oponiaków -- także z drugiego katalogu (część kopii
+w teście pochodzi od obrazów treningowych).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\linewidth]{eda_konflikty_etykiet.png}
+\caption{Pary niemal identycznych obrazów z różnymi etykietami (górny i dolny wiersz to para).}
+\label{fig:konflikty}
+\end{figure}
+
+\subsection*{Przetwarzanie danych}
+\begin{itemize}
+\item Odrzucenie sztucznych kopii \texttt{aug}; zbiór treningowy liczy \nTrain{} obrazów
+  (\nTrainMeningioma{} oponiaków i po 1400 obrazów pozostałych klas). Niewielka nierównowaga nie wymagała wag klas
+  ani oversamplingu.
+\item Zbiór testowy oczyszczony (\texttt{test\_dedup}, \nTestDedup{} obrazów): bez obrazów
+  z bliźniakiem w treningu i bez kopii \texttt{aug}. Wyniki raportujemy na obu wersjach testu.
+\item Konwersja do skali szarości i skalowanie do 224$\times$224 (interpolacja dwuliniowa).
+  Normalizacja: dla CNN od zera -- średnią i odchyleniem jasności zbioru treningowego (stałe w \texttt{src/models.py}),
+  dla sieci z ImageNet -- kopiowanie kanału na 3 i statystyki ImageNet.
+\item Augmentacja zgodna z domeną MRI: odbicie w poziomie (mózg jest w przybliżeniu
+  symetryczny, a guz może wystąpić po każdej stronie), obrót do $\pm$10°, przesunięcie do 5\,\%,
+  skalowanie 0,9--1,1. Celowo \emph{bez} zmian jasności i kontrastu: intensywność sygnału MRI
+  niesie informację diagnostyczną, a różnice jasności między klasami chcieliśmy zbadać,
+  a nie zamaskować.
+\item Grupy niemal-duplikatów w treningu (\nGroups{} grup, największa ma \nGroupsMax{} obrazów)
+  wykorzystano w walidacji krzyżowej (rozdz.~\ref{sec:trening}).
+\end{itemize}
+
+% ---------------------------------------------------------------- 3
+\section{Modelowanie i ewaluacja}
+\input{czesc3.tex}
+
+% ---------------------------------------------------------------- 4
+\section{Interpretacja wyników i wyjaśnialność}\label{sec:xai}
+\input{czesc4.tex}
+
+% ---------------------------------------------------------------- 5
+\section{Implementacja}
+\input{czesc5.tex}
+
+% ---------------------------------------------------------------- 6
+\section{Podsumowanie}
+\input{czesc6.tex}
+
+% ---------------------------------------------------------------- 7
+\section{Załączniki}\label{sec:zal}
+\begin{itemize}
+\item Repozytorium: \url{https://github.com/balicz3k/BrainTumorClassification}
+\item Notatniki z wynikami: \texttt{notebooks/01\_eda.ipynb} -- \texttt{05\_ewaluacja\_wyjasnialnosc.ipynb}.
+\item Kod: \texttt{src/} (dane, modele, trening, strojenie, metryki, Grad-CAM), GUI: \texttt{app.py}.
+\item Surowe wyniki: \texttt{out/metrics/} (JSON i CSV), wykresy: \texttt{out/figures/}.
+\item Instrukcja odtworzenia wyników: \texttt{README.md}.
+\end{itemize}
+
+\end{document}
