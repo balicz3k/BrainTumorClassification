@@ -1,11 +1,19 @@
-# PyTorch z CUDA 12.4 (wymaga Python 3.12, nie 3.14)
-# venv: python3.12 -m venv venv
-# instalacja: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
-torch>=2.6.0
-torchvision>=0.21.0
-pillow
-numpy
-matplotlib
-scikit-learn
-jupyter
-kaggle
+# Python 3.12 (PyTorch z CUDA 12.4 nie ma jeszcze kół dla 3.14)
+#   python3.12 -m venv venv && source venv/bin/activate
+#   pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.6.0+cu124
+torchvision==0.21.0+cu124
+numpy==2.5.4
+pandas==3.1.0
+pillow==13.0.0
+scipy==1.18.1
+scikit-learn==1.9.1
+matplotlib==3.11.2
+seaborn==0.13.2
+ImageHash==4.3.2
+optuna==5.0.0
+streamlit==1.67.0
+jupyter==1.1.1
+nbconvert==7.17.2
+ipykernel==7.4.0
+kaggle==2.2.5
