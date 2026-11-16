@@ -5,7 +5,7 @@
 #   3. modele końcowe na całym zbiorze treningowym,
 #   4. jednorazowa ewaluacja wszystkich modeli końcowych na teście.
 # Uruchomienie w tle (bez usypiania komputera):
-#   nohup systemd-inhibit --what=sleep:idle --why="trening UM" scripts/run_final.sh resnet50 > out/logs/final.log 2>&1 &
+#   nohup systemd-inhibit --what=idle --why="trening UM" scripts/run_final.sh resnet50 > out/logs/final.log 2>&1 &
 set -e
 cd "$(dirname "$0")/.."
 M=${1:-efficientnet_b0}
