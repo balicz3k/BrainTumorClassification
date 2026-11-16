@@ -39,7 +39,7 @@ def load_image(path, size=IMG_SIZE):
     Część plików jest zapisana jako RGB, ale kanały są (prawie) identyczne,
     więc trzymamy jeden kanał."""
     img = Image.open(path).convert('L').resize((size, size), Image.BILINEAR)
-    return np.asarray(img, dtype=np.uint8)
+    return np.array(img, dtype=np.uint8)
 
 
 def load_images(paths, size=IMG_SIZE):
