@@ -1,0 +1,5 @@
+cls,trening: nie 512x512,test: nie 512x512,test: błędy wśród nie 512x512,test: błędy wśród 512x512,test: 512x512
+glioma,0,76,66,1,324
+meningioma,133,117,0,2,283
+notumor,1383,397,0,0,3
+pituitary,72,8,0,0,392
